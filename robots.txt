@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://akmutuaadvocates.co.ke/sitemap.xml
