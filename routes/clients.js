@@ -15,8 +15,16 @@ router.get('/', auth, async (req, res) => {
 
 // Add a new client
 router.post('/', auth, async (req, res) => {
-  const { name, caseNumber, caseDescription, phone, email } = req.body;
-  const newClient = new Client({ name, caseNumber, caseDescription, phone, email });
+  const { name, caseNumber, caseDescription, phone, email, status } = req.body;
+  // Default status to 'pending' if not provided
+  const newClient = new Client({ 
+    name, 
+    caseNumber, 
+    caseDescription, 
+    phone, 
+    email,
+    status: status || 'pending'
+  });
 
   try {
     const savedClient = await newClient.save();
@@ -37,6 +45,39 @@ router.get('/search', auth, async (req, res) => {
       ]
     });
     res.json(clients);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update a client by ID
+router.put('/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  try {
+    const updatedClient = await Client.findByIdAndUpdate(
+      id,
+      updates,
+      { new: true, runValidators: true }
+    );
+    if (!updatedClient) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json(updatedClient);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Delete a client by ID
+router.delete('/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedClient = await Client.findByIdAndDelete(id);
+    if (!deletedClient) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    res.json({ message: 'Client deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
