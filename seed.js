@@ -833,51 +833,62 @@ function generateCaseDescription(caseTypeObj, year, status, town) {
   const date = `${Math.floor(Math.random() * 28) + 1}/${Math.floor(Math.random() * 12) + 1}/${year}`;
   const court = getCourtForTown(town);
 
-  let description = '';
+  let intro = '';
+  const introPatterns = [
+    `Charges were brought against the accused for ${template.toLowerCase()}.`,
+    `The accused faced allegations of ${template.toLowerCase()}.`,
+    `A case was filed regarding ${template.toLowerCase()}.`,
+    `It was alleged that the accused ${template.toLowerCase()}.`
+  ];
+  intro = randomItem(introPatterns);
 
+  const incident = `The incident is said to have occurred in ${town} around ${date}.`;
+
+  let outcomePart = '';
   if (status === 'closed') {
-    const isFavourable = Math.random() < 0.9; // 90% favourable to client
-    let outcome;
+    const isFavourable = Math.random() < 0.9;
     if (isFavourable) {
-      const favourableOutcomes = [
-        'accused was acquitted and discharged',
-        'case was dismissed with costs to the accused',
-        'accused was found not guilty on all counts',
-        'charges were withdrawn after a successful plea bargain',
-        'the court ruled in favour of the accused'
+      const favourable = [
+        'the court found the accused not guilty and acquitted him/her.',
+        'the charges were dismissed with costs to the accused.',
+        'the accused was discharged after a successful plea bargain.',
+        'the case was withdrawn before trial.'
       ];
-      outcome = randomItem(favourableOutcomes);
+      outcomePart = randomItem(favourable);
     } else {
-      const unfavourableOutcomes = [
-        'accused was convicted and sentenced to 5 years imprisonment',
-        'accused was found guilty and fined KSh 500,000',
-        'accused was ordered to pay compensation to the complainant',
-        'the appeal was dismissed by the High Court'
+      const unfavourable = [
+        'the accused was convicted and sentenced to 5 years imprisonment.',
+        'the court found the accused guilty and imposed a fine of KSh 500,000.',
+        'the accused was ordered to pay compensation to the complainant.',
+        'the appeal against conviction was dismissed.'
       ];
-      outcome = randomItem(unfavourableOutcomes);
+      outcomePart = randomItem(unfavourable);
     }
-    description = `The accused was charged with ${template.toLowerCase()}. The alleged incident occurred in ${town} on or about ${date}. After trial, ${outcome}. The case was heard at ${court}.`;
+    outcomePart = ` After trial, ${outcomePart}`;
   } else {
-    // pending case
-    const stages = [
+    const pendingStages = [
       'pending hearing',
       'awaiting plea taking',
       'under judicial review',
       'scheduled for mention',
-      'awaiting the Director of Public Prosecutions\'s instructions'
+      'awaiting the DPP\'s instructions'
     ];
-    const stage = randomItem(stages);
-    description = `The accused is charged with ${template.toLowerCase()}. The alleged incident occurred in ${town} on or about ${date}. The matter is currently ${stage} at ${court}.`;
+    const stage = randomItem(pendingStages);
+    outcomePart = ` The matter is currently ${stage}.`;
   }
 
-  // Election note for political cases
+  let description = `${intro} ${incident}${outcomePart} The case is being handled at ${court}.`;
+
+  // Election note
   if (caseTypeObj.category === 'Political Case' && [2013, 2017, 2022].includes(year)) {
-    description += ` This case arose from the ${year} general elections.`;
+    description += ` This case relates to the ${year} general elections.`;
   }
 
   return description;
 }
 
+// ------------------------------------------------------------------
+// MAIN SEED FUNCTION
 // ------------------------------------------------------------------
 // MAIN SEED FUNCTION
 // ------------------------------------------------------------------
@@ -898,7 +909,7 @@ async function seed() {
 
     const cases = [];
 
-    // Generate raw cases (without case numbers)
+    // Generate raw cases
     for (let i = 0; i < total; i++) {
       const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
       const caseType = randomItem(caseTypes);
@@ -907,20 +918,18 @@ async function seed() {
       const status = generateStatus(year);
       const town = randomItem(towns);
       const description = generateCaseDescription(caseType, year, status, town);
-      const email = ''; // leave blank
+      const email = '';
 
-      // Set createdAt to a random date within the case year
-      // Inside the loop, after generating year
-const start = new Date(year, 0, 1);
-let end;
-if (year === 2026) {
-  // For 2026, end at today (March 27, 2026) – we use current date
-  end = new Date(); // this will be the moment the script runs
-} else {
-  end = new Date(year, 11, 31);
-}
-const createdAt = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-const updatedAt = createdAt;
+      // createdAt date within the year (2026 capped at today)
+      const start = new Date(year, 0, 1);
+      let end;
+      if (year === 2026) {
+        end = new Date(); // today (March 2026)
+      } else {
+        end = new Date(year, 11, 31);
+      }
+      const createdAt = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+      const updatedAt = createdAt;
 
       cases.push({
         name,
@@ -934,10 +943,10 @@ const updatedAt = createdAt;
       });
     }
 
-    // Sort by year DESCENDING (newest first)
-    cases.sort((a, b) => b.year - a.year);
+    // Sort by year ascending (oldest first)
+    cases.sort((a, b) => a.year - b.year);
 
-    // Assign sequential case numbers: AKM-001-2026 (newest) ... AKM-1157-2013 (oldest)
+    // Assign sequential case numbers (oldest gets 001, newest gets total)
     const clients = [];
     for (let idx = 0; idx < cases.length; idx++) {
       const c = cases[idx];
