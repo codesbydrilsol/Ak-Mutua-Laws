@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Client = require('./models/Client');// adjust path if needed
+const Client = require('./models/Client'); // adjust path if needed
 
 // ------------------------------------------------------------------
 // PHONE NUMBERS – all numbers from your list, cleaned and formatted
@@ -764,6 +764,14 @@ const caseTypes = [
 
 // COURT LOCATIONS (with proper names)
 // ------------------------------------------------------------------
+const towns = [
+  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Machakos', 'Meru', 'Kisii',
+  'Kitale', 'Thika', 'Malindi', 'Garissa', 'Kakamega', 'Nyeri', 'Embu', 'Bungoma',
+  'Busia', 'Vihiga', 'Homa Bay', 'Migori', 'Kitui', 'Makueni', 'Naivasha', 'Nanyuki',
+  'Kericho', 'Kapsabet', 'Kabarnet', 'Isiolo', 'Marsabit', 'Lamu', 'Kwale', 'Kilifi',
+  'Taita Taveta', 'Wajir', 'Mandera', 'Turkana'
+];
+
 const courtLocations = [
   'Nairobi Law Courts', 'Mombasa High Court', 'Kisumu Chief Magistrate\'s Court',
   'Nakuru Environment and Land Court', 'Eldoret Industrial Court', 'Machakos Law Courts',
@@ -773,6 +781,7 @@ const courtLocations = [
   'Homa Bay Law Courts', 'Migori High Court', 'Kitui Law Courts', 'Makueni Law Courts'
 ];
 
+// Helper functions
 // Helper functions
 // Helper functions
 function randomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -790,7 +799,6 @@ function generateName() {
   return `${firstName} ${lastName}`;
 }
 
-
 function generateStatus(year) {
   if (year <= 2022) {
     // 90% closed, 10% pending for older cases
@@ -803,35 +811,52 @@ function generateStatus(year) {
 
 function generateCaseDescription(caseTypeObj, year, status) {
   const template = randomItem(caseTypeObj.templates);
-  const location = randomItem(courtLocations);
+  const incidentTown = randomItem(towns);
+  const court = randomItem(courtLocations);
   const date = `${Math.floor(Math.random() * 28) + 1}/${Math.floor(Math.random() * 12) + 1}/${year}`;
 
   let stage = '';
-  let nextHearing = '';
   let outcome = '';
+  let ruling = '';
 
   if (status === 'closed') {
-    const outcomes = [
-      'accused convicted and sentenced to 5 years imprisonment',
-      'case dismissed for lack of evidence',
-      'settled out of court with compensation',
-      'accused acquitted on appeal',
-      'matter resolved through plea bargain'
-    ];
-    outcome = randomItem(outcomes);
-    stage = `The matter was concluded with ${outcome}.`;
+    // 90% of closed cases are favourable to the client (accused)
+    const isFavourable = Math.random() < 0.9;
+    if (isFavourable) {
+      const favourableOutcomes = [
+        'accused acquitted and discharged',
+        'case dismissed with costs to the accused',
+        'accused found not guilty on all counts',
+        'charges withdrawn after successful plea bargain',
+        'court ruled in favour of the accused'
+      ];
+      outcome = randomItem(favourableOutcomes);
+      ruling = `The court at ${court} ruled in favour of the accused.`;
+    } else {
+      const unfavourableOutcomes = [
+        'accused convicted and sentenced to 5 years imprisonment',
+        'accused found guilty and fined KSh 500,000',
+        'accused ordered to pay compensation to the complainant',
+        'appeal dismissed by the High Court'
+      ];
+      outcome = randomItem(unfavourableOutcomes);
+      ruling = `The court at ${court} delivered a judgment against the accused.`;
+    }
+    stage = `The matter was concluded with ${outcome}. ${ruling}`;
   } else {
+    // Pending cases – current stage
     const stages = [
       'awaiting plea taking',
       'at the hearing stage (3rd mention)',
-      'adjourned for further hearing on 15/6/2025',
+      'adjourned for further hearing',
       'awaiting judgment from the High Court',
       'pre‑trial conference scheduled for next month',
       'under judicial review'
     ];
     stage = randomItem(stages);
     const nextDates = ['20/8/2025', '3/9/2025', '15/10/2025', '1/11/2025', '10/12/2025'];
-    nextHearing = ` Next hearing set for ${randomItem(nextDates)}.`;
+    const nextHearing = Math.random() > 0.3 ? ` Next hearing set for ${randomItem(nextDates)}.` : '';
+    stage = `the case is ${stage}.${nextHearing}`;
   }
 
   let electionNote = '';
@@ -845,13 +870,13 @@ function generateCaseDescription(caseTypeObj, year, status) {
     `The prosecution alleges that on or about ${date}, the accused ${template.toLowerCase()}.`
   ]);
 
-  const locationInfo = `The incident occurred at ${location} in ${year}.`;
+  const locationInfo = `The incident occurred in ${incidentTown} town.`;
 
-  let description = `${intro} ${locationInfo}${electionNote} Currently, the case is ${stage}${nextHearing}`;
+  let description = `${intro} ${locationInfo}${electionNote} Currently, ${stage}`;
 
   if (Math.random() > 0.6) {
     const extra = randomItem([
-      `The accused is represented by ${Math.random() > 0.5 ? 'Mr. Otieno' : 'Ms. Wanjiku'} of the firm M/S Kamau & Co.`,
+      `The accused is represented by ${Math.random() > 0.5 ? 'Mr. Otieno' : 'Ms. Wanjiku'} of a local law firm.`,
       `The prosecution has called ${Math.floor(Math.random() * 5) + 1} witnesses so far.`,
       `Bail was granted on condition of surrendering travel documents.`,
       `The case has been ongoing for ${Math.floor(Math.random() * 3) + 1} years.`
@@ -862,17 +887,6 @@ function generateCaseDescription(caseTypeObj, year, status) {
   return description;
 }
 
-function generateStatus(year) {
-  if (year <= 2022) {
-    // 90% closed, 10% pending for older cases
-    return Math.random() < 0.9 ? 'closed' : 'pending';
-  } else {
-    // 90% pending, 10% closed for newer cases
-    return Math.random() < 0.9 ? 'pending' : 'closed';
-  }
-}
-// ------------------------------------------------------------------
-// MAIN SEED FUNCTION
 // ------------------------------------------------------------------
 // MAIN SEED FUNCTION
 // ------------------------------------------------------------------
@@ -881,16 +895,20 @@ async function seed() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Optional: clear existing data
-     await Client.deleteMany({});
-     console.log('Cleared existing clients');
+    // Clear existing data
+    await Client.deleteMany({});
+    console.log('Cleared existing clients');
 
-    const total = 1000;
+    const total = 1157;               // total number of cases
+    const startYear = 2013;
+    const endYear = 2026;
+
     const cases = [];
 
     // Generate raw cases (without case numbers)
     for (let i = 0; i < total; i++) {
-      const year = Math.floor(Math.random() * (2025 - 2013 + 1)) + 2013;
+      // Random year between 2013 and 2026 inclusive
+      const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
       const caseType = randomItem(caseTypes);
       const name = generateName();
       const phone = phoneNumbers[i % phoneNumbers.length];
@@ -898,6 +916,7 @@ async function seed() {
       const description = generateCaseDescription(caseType, year, status);
       const email = ''; // leave blank
 
+      // Set createdAt to a random date within the case year
       const start = new Date(year, 0, 1);
       const end = new Date(year, 11, 31);
       const createdAt = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -915,10 +934,10 @@ async function seed() {
       });
     }
 
-    // Sort by year descending (newest first)
-    cases.sort((a, b) => b.year - a.year);
+    // Sort by year ascending (oldest first)
+    cases.sort((a, b) => a.year - b.year);
 
-    // Assign sequential case numbers (AKM-001-year to AKM-1000-year)
+    // Assign sequential case numbers: AKM-001-2013 ... AKM-1157-2026
     const clients = [];
     for (let idx = 0; idx < cases.length; idx++) {
       const c = cases[idx];
