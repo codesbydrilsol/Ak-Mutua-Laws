@@ -525,7 +525,7 @@ function escapeHtml(str) {
 async function fetchClients() {
   try {
     const res = await fetch(`${API_URL}/clients`, {
-      headers: { 'x-admin-password': 'password123' }
+      headers: { 'x-admin-password': '#Akmutuaadv@2013' }
     });
     if (!res.ok) throw new Error('Failed to fetch');
     allClients = await res.json();
@@ -555,7 +555,7 @@ async function addClient() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-password': 'password123'
+        'x-admin-password': '#Akmutuaadv@2013'
       },
       body: JSON.stringify({ name, caseNumber, caseDescription, phone, email })
     });
@@ -581,7 +581,7 @@ async function deleteClient(id) {
   try {
     const res = await fetch(`${API_URL}/clients/${id}`, {
       method: 'DELETE',
-      headers: { 'x-admin-password': 'password123' }
+      headers: { 'x-admin-password': '#Akmutuaadv@2013' }
     });
     if (!res.ok) throw new Error('Delete failed');
     alert('Client deleted');
@@ -632,7 +632,7 @@ async function updateClient() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-password': 'password123'
+        'x-admin-password': '#Akmutuaadv@2013'
       },
       body: JSON.stringify(updatedData)
     });
